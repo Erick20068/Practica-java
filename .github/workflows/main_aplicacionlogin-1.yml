@@ -1,0 +1,58 @@
+name: Build and deploy JAR app to Azure Web App - AplicacionLogin-1
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java version
+        uses: actions/setup-java@v4
+        with:
+          java-version: '8'
+          distribution: 'temurin'
+
+      - name: Build with Maven
+        run: mvn clean package -DskipTests
+
+      # ESTO ES LO NUEVO: Renombra el archivo para que Azure no se pierda
+      - name: Rename JAR for Azure
+        run: mv target/*.jar target/app.jar
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: java-app
+          path: 'target/app.jar'
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: java-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_91CA2C581EAF4F2EB87E2226B6121740 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6DF2296C4DBC469D947CB1D23E62419A }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_ACD7833D167445FCA0DF1D562CA8AF4E }}
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'AplicacionLogin-1'
+          slot-name: 'Production'
+          package: 'app.jar'
