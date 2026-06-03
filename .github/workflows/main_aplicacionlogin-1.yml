@@ -1,6 +1,3 @@
-# Documentation for Azure Webapps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy JAR app to Azure Web App - AplicacionLogin-1
 
 on:
@@ -12,9 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
     steps:
       - uses: actions/checkout@v4
 
@@ -22,16 +16,20 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: '8'
-          distribution: 'temurin' # <-- Solución al error de Java 8
+          distribution: 'temurin'
 
       - name: Build with Maven
-        run: mvn clean package -DskipTests # <-- Cambiado a package para asegurar el .jar correcto
+        run: mvn clean package -DskipTests
+
+      # ESTO ES LO NUEVO: Renombra el archivo para que Azure no se pierda
+      - name: Rename JAR for Azure
+        run: mv target/*.jar target/app.jar
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: java-app
-          path: '${{ github.workspace }}/target/*.jar'
+          path: 'target/app.jar'
 
   deploy:
     runs-on: ubuntu-latest
@@ -39,7 +37,6 @@ jobs:
     permissions:
       id-token: write
       contents: read
-
     steps:
       - name: Download artifact from build job
         uses: actions/download-artifact@v4
@@ -54,9 +51,8 @@ jobs:
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_ACD7833D167445FCA0DF1D562CA8AF4E }}
 
       - name: Deploy to Azure Web App
-        id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
           app-name: 'AplicacionLogin-1'
           slot-name: 'Production'
-          package: '*.jar'
+          package: 'app.jar'
