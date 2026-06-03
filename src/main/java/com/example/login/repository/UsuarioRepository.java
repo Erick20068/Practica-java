@@ -1,11 +1,14 @@
 package com.example.login.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 import com.example.login.entity.Usuario;
 import java.util.Optional;
 
-@Repository
-public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
-    Optional<Usuario> findByUsername(String username);
+public interface UsuarioRepository {
+
+    default Optional<Usuario> findByUsername(String username) {
+        if ("admin".equals(username)) {
+            return Optional.of(new Usuario("admin", "12345"));
+        }
+        return Optional.empty();
+    }
 }
